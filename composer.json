@@ -75,9 +75,7 @@ def tinyMazeSearch(problem):
     s = Directions.SOUTH
     w = Directions.WEST
     return  [s, s, w, s, w, w, s, w]
-#cautare de graf
-#obs: ceea ce vad cu rosu, reprezinta calea pe care a facut cautarea
-#modul in care aleg sa scot din frontiera, imi defineste algoritmul de cautare
+
 def depthFirstSearch(problem):
     """
     Search the deepest nodes in the search tree first.
@@ -93,46 +91,24 @@ def depthFirstSearch(problem):
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     "*** YOUR CODE HERE ***"
-    nodcrt= (problem.getStartState(), []) #nodul curent informatii: starea nodului curent, lista de mutari
-    #Inep sa construiesc arborele de cautare
-    #frontiera=stari pe care inca nu le-am explorat,dar pe care le putem explora
-    #nodurile expandate, pornind din punctul curent
-    #frontiera e o margine. scot de aici un nod, il expandez mai departe  
-    #frontiera= delimitatie intre ce am explorat si ce nu am explorat
-    frontiera=util.Stack()  #nodurile care se pun in stiva pentru a se expanda. Alternative de cautat
-    teritoriu = [] #lista de nnoduri expandate, initial est goala
-    frontiera.push(nodcrt)  #pentru primul nod, cel cu care se incepe, se va pune in lista 
+    nodcrt= (problem.getStartState(), [])
+    frontiera=util.Stack()
+    teritoriu = []
+    frontiera.push(nodcrt)
 
-    #la fiecare pas, trebuie sa ma hotarasc, ce nod din frontiera va fi explorat in continuare :)
-   
-    #frontiera goala: nu mai are unde cauta, am ramas fara alternative
-    while not frontiera.isEmpty(): #cat timp frintiera nu e goala
-        nodcrt= frontiera.pop()  #scoatem din frontiera
-        #cazul in care se termina jocul
-        #daca s-a ajuns in starea finala
-        #se returneaza lista de deplasari/mutari efectuate pana sa ajunga in pozitia respectiva
-        if problem.isGoalState(nodcrt[0]):  
+    while not frontiera.isEmpty():
+        nodcrt= frontiera.pop()
+        if problem.isGoalState(nodcrt[0]):
             return nodcrt[1]
-        #cazul in care putem continua sa expandam nodurile, pentru a  gasi nodurile pe care le va parcurge    
         teritoriu.append(nodcrt[0])
-        #pentru nodul curent, se expandeaza succesorii
-        succesori=problem.getSuccessors(nodcrt[0])
-        #parcurg succesorii
-        #evita parcurgerea de cicluri
-
-        #daca am deja o cale catre nod, nu il mai pun, caut alte cai ale celorlalte noduri 
-        #nu vreau 2 modalitati de a ajunge la nod
-        #evit cazul in care pornesc cu cautarea dintr-un nod al frontierei, si il intalnesc iar
+        succesori=problem.expend(nodcrt[0])
         for succesor in succesori:
             (stare, mutare, cost)=succesor   
-            #daca nu e nodul in teritoriu si nici nu e in frontiera,
-            if stare not in teritoriu and stare not in (nodcrt[0] for nod in frontiera.list): 
-                #adaug la cale, mutarea nodului.
+            if stare not in teritoriu and stare not in (nodcrt[0] for nod in frontiera.list):
                 cale=nodcrt[1] + [mutare]
-                #adaug in frontiera nodul, updatandu-se calea
                 frontiera.push((stare, cale))
-    if teritoriu==[]:
-        return []
+
+    return []
 
 
 def breadthFirstSearch(problem):
@@ -142,6 +118,9 @@ def breadthFirstSearch(problem):
     nodcrt = (problem.getStartState(), [])  #in aceasta frontiera este o pereche de ( starea, actiuni necesare pentru accesarea starii)
     frontiera= util.Queue()
     teritoriu = []
+
+    #aici ce trebuie sa fie frontiera???
+
     frontiera.push(nodcrt)
 
     while not frontiera.isEmpty():
@@ -149,22 +128,21 @@ def breadthFirstSearch(problem):
         if problem.isGoalState(nodcrt[0]):
             return nodcrt[1]
         teritoriu.append(nodcrt[0])
-        succesori=problem.getSuccessors(nodcrt[0])
+        succesori=problem.getSuccesors(nodcrt[0])
         for succesor in succesori:
-            (stare, mutare, val )=succesor   
+            (stare, mutare, )=succesor   
             if stare not in teritoriu and stare not in (nodcrt[0] for nod in frontiera.list):
                 cale=nodcrt[1] + [mutare]
                 frontiera.push((stare, cale))
 
-    if teritoriu==[]:
-        return []
+    return []
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
     nodCrt = (problem.getStartState, []) # primul nod, care incepe de la starea initiala a problemei, stare initiala, lista de actiuni la inceput vida
-    frontiera=util.PriorityQueue()  #frontiera trebuie sa fie coada cu prioritati, toate nodurile fiind ordonate in functie de prioritate
-    teritoriu =[] #noduri expandate, la inceput nu avem niciun nod expandat, cea mai mica prioritate in vf
+    frontiera=util.PriorityQueue()  #frontiera trebuie sa fie coada cu prioritati
+    teritoriu =[] #noduri expandate, la inceput nu avem niciun nod expandat
     
     #(nodCrt, 0): pentru fiecare nod se asociaza COSTUL
     #se pune initial 0, intrucat pt a te deplasa din stare initiala in ea insasi, costul ar fi 0
@@ -184,7 +162,7 @@ def uniformCostSearch(problem):
         teritoriu.append(nodCrt[0])
         #dupa ce adauf starea
         #vreau sa obtin succesorii acestei sati curente
-        succesori=problem.getSuccessors(nodCrt[0]) #expandex cu starea care se gaseste in nodul curent
+        succesori=problem.getSuccesors(nodCrt[0]) #expandex cu starea care se gaseste in nodul curent
        
         #pt fiecare succeor gasit in lista de succesori
         #se returneaza lista succesorilor pentru fiecare din succesori, cunoscandu-se starea, mutarea si costul mutarii
@@ -203,11 +181,10 @@ def uniformCostSearch(problem):
                 #calculez valoarea asociata acestei noi stari
                 q = problem.getCostOfActionSequence(cale)
                 #partea de adaugare
-                #updatez pentru a mentine conditia de priority
                 frontiera.update((stare, cale), q) #introduc un nou nod, format din noul succesor si calea sa, iar prioritatea este valoarea q
-    #conditie de stop
-    if frontiera.isEmpty():
-        return []
+
+    return []  #esec 
+
 
 def nullHeuristic(state, problem=None):
     """
@@ -217,6 +194,42 @@ def nullHeuristic(state, problem=None):
     return 0
 
 def aStarSearch(problem, heuristic=nullHeuristic):
+    """Search the node that has the lowest combined cost and heuristic first."""
+    
+    frontiera=util.PriorityQueue()  
+    teritoriu =[] 
+
+    #doar aici se fac modificari, adaugandu-se partea de euristica
+    h=heuristic(problem.getStartState(), problem) #par1: starea pentru care se calculeaza functia euristica= starea initiala
+   
+    g=0 #costul real din starea initiala, in starea finala, este=0
+    f=g+h
+    nodCrt = (problem.getStartState, [])  #nodul curent care se creaza in aceasta situatie
+    frontiera.push(nodCrt, f) #se adauga nodul curent si costul sau (f)
+
+    while not frontiera.isEmpty():
+        nodCrt = frontiera.pop() #se extrage un nod
+        if(problem.isGoalState(nodCrt[0])): #daca starea este stare finala
+            return nodCrt[1]   #returnam lista de actiuni
+        teritoriu.append(nodCrt[0]) #adaugam starea respectiva in teritoriu
+        succesori=problem.getSuccesors(nodCrt[0])  #obtin succesorii nodului curent
+        for succesor in succesori: #pt fiecare succesor, vom avea: 
+            (stare, mutare, cost)=succesor #stare. mutare, cost aferent
+        
+            if stare not in teritoriu: #stare ce nu e in teritoriu
+               #voi calcula 
+                cale = nodCrt[1] + [mutare]
+               
+                q = problem.getCostOfActionSequence(cale)
+                #cost pana in stare curenta
+               
+               
+                #in euristica, se pune cale, nu problem.getStartState()-starea curenta
+                h=heuristic(stare, problem) #par1: starea pentru care se calculeaza functia euristica= starea initiala
+               
+                #in frontiera se actualizeaza cu aceasta stare in calea specificata de g
+                frontiera.update((stare, cale), q) 
+
     return []
 
 

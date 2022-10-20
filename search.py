@@ -1,11 +1,10 @@
-#https://github.com/lyzfrank/AI-Pacman/blob/master/uninformed_search.py
 # search.py
 # ---------
 # Licensing Information:  You are free to use or extend these projects for
 # educational purposes provided that (1) you do not distribute or publish
 # solutions, (2) you retain this notice, and (3) you provide clear
 # attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
-# 
+#
 # Attribution Information: The Pacman AI projects were developed at UC Berkeley.
 # The core projects and autograders were primarily created by John DeNero
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
@@ -17,6 +16,7 @@
 In search.py, you will implement generic search algorithms which are called by
 Pacman agents (in searchAgents.py).
 """
+import random
 
 import util
 
@@ -33,37 +33,62 @@ class SearchProblem:
         Returns the start state for the search problem.
         """
         util.raiseNotDefined()
-         
 
     def isGoalState(self, state):
-        """
+        """python pacman.py -l bigMaze -z .5 -p SearchAgent -a fn=astar,heuristic=manhattanHeuristic
+
           state: Search state
 
         Returns True if and only if the state is a valid goal state.
         """
         util.raiseNotDefined()
-        
 
-    def getSuccessors(self, state):
+    def expand(self, state):
         """
           state: Search state
 
-        For a given state, this should return a list of triples, (successor,
-        action, stepCost), where 'successor' is a successor to the current
+        For a given state, this should return a list of triples, (child,
+        action, stepCost), where 'child' is a child to the current
         state, 'action' is the action required to get there, and 'stepCost' is
-        the incremental cost of expanding to that successor.
+        the incremental cost of expanding to that child.
         """
         util.raiseNotDefined()
 
-    def getCostOfActions(self, actions):
+    def getActions(self, state):
         """
-        actions: A list of actions to take
+          state: Search state
+
+        For a given state, this should return a list of possible actions.
+        """
+        util.raiseNotDefined()
+
+    def getActionCost(self, state, action, next_state):
+        """
+          state: Search state
+          action: action taken at state.
+          next_state: next Search state after taking action.
+
+        For a given state, this should return the cost of the (s, a, s') transition.
+        """
+        util.raiseNotDefined()
+
+    def getNextState(self, state, action):
+        """
+          state: Search state
+          action: action taken at state
+
+        For a given state, this should return the next state after taking action from state.
+        """
+        util.raiseNotDefined()
+
+    def getCostOfActionSequence(self, actions):
+        """
+         actions: A list of actions to take
 
         This method returns the total cost of a particular sequence of actions.
         The sequence must be composed of legal moves.
         """
         util.raiseNotDefined()
-        
 
 
 def tinyMazeSearch(problem):
@@ -76,115 +101,103 @@ def tinyMazeSearch(problem):
     w = Directions.WEST
     return  [s, s, w, s, w, w, s, w]
 
+"""2.10"""
+def randomSearchAgent(problem):
+    """As a baseline, we will create an agent which searches
+a solution randomly: it just picks one legal action at each step of search. Write a new search
+function in search.py similar to tinyMazeSearch function. The function returns a list of
+actions from the initial state to goal state, each action being randomly selected from the set of
+legal actions."""
+
+    solutie=[]
+    startPoz = problem.getStartState()
+    while( not (problem.isGoalState(startPoz)) ):
+        succesorii = problem.expand(startPoz)
+        nr = len(succesorii)
+        randSucc = int(random.random()*nr)
+        urm = succesorii[randSucc]
+        startPoz=urm[0]
+        solutie.append(urm[1])
+
+    print("Solutia este: ", solutie)
+    return solutie
+
+def randomSearch ( problem ) :
+        current = problem . getStartState ()
+        solution =[]
+        while ( not ( problem . isGoalState ( current ) ) ) :
+            succ = problem . expand ( current )
+            no_of_successors = len ( succ )
+            random_succ_index = int ( random . random () * no_of_successors )
+            next = succ [ random_succ_index ]
+            current = next [0]
+            solution . append ( next [1])
+        print (" The solution is " , solution)
+        return solution    
 def depthFirstSearch(problem):
-    """
-    Search the deepest nodes in the search tree first.
+   
 
-    Your search algorithm needs to return a list of actions that reaches the
-    goal. Make sure to implement a graph search algorithm.
-
-    To get started, you might want to try some of these simple commands to
-    understand the search problem that is being passed in:
-
-    print("Start:", problem.getStartState())
-    print("Is the start a goal?", problem.isGoalState(problem.getStartState()))
-    print("Start's successors:", problem.getSuccessors(problem.getStartState()))
-    """
-    "*** YOUR CODE HERE ***"
-    nodcrt= (problem.getStartState(), [])
-    frontiera=util.Stack()
-    teritoriu = []
-    frontiera.push(nodcrt)
-
-    while not frontiera.isEmpty():
-        nodcrt= frontiera.pop()
-        if problem.isGoalState(nodcrt[0]):
-            return nodcrt[1]
-        teritoriu.append(nodcrt[0])
-        succesori=problem.expend(nodcrt[0])
-        for succesor in succesori:
-            (stare, mutare, cost)=succesor   
-            if stare not in teritoriu and stare not in (nodcrt[0] for nod in frontiera.list):
-                cale=nodcrt[1] + [mutare]
-                frontiera.push((stare, cale))
-
-    return []
-
+    start = problem.getStartState()
+    "nodul de start de unde pleaca dfs"
+    curent = start
+    "nodul in care ma aflu"
+    noduriExplorate = []
+    "noduri pe care deja le am vizitat"
+    stiva = util.Stack()
+    stiva.push((start,[]))
+    "pun in stiva nodul de start"
+    "cat timp stiva nu e goala si nu am ajuns la punctul final (mancare)"
+    while not stiva.isEmpty() and not problem.isGoalState(curent):
+        nod, directii= stiva.pop()
+        noduriExplorate.append(nod)
+        "marchez ca si vizitat nodul pe care urmeaza sa il explorez"
+        succesori = problem.expand(nod)
+        "ma uit la succesoruii nodului curent"
+        for i in succesori:
+            coordonataCurenta = i[0]
+            "coordonata nodului (x,y)"
+            if not coordonataCurenta in noduriExplorate:
+                "daca coordonata nu este in nodurile explorate"
+                curent = i[0]
+                directie = i[1]
+                "directia pe unde trebuie sa o iau"
+                stiva.push((curent,directii+[directie]))
+                "pun i stiva coordonata curenta si directia "
+    return directii+[directie]
+    util.raiseNotDefined()
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-   
-    nodcrt = (problem.getStartState(), [])  #in aceasta frontiera este o pereche de ( starea, actiuni necesare pentru accesarea starii)
-    frontiera= util.Queue()
-    teritoriu = []
+    start = problem.getStartState()
+    "nodul de start de unde pleaca bfs"
+    noduriExplorate = []
+    "noduri pe care deja le am vizitat"
+    noduriExplorate.append(start)
+    coada = util.Queue()
+    coada.push((start, []))
+    "pun in coada nodul de start"
+    "cat timp coada nu e goala "
 
-    #aici ce trebuie sa fie frontiera???
-
-    frontiera.push(nodcrt)
-
-    while not frontiera.isEmpty():
-        nodcrt= frontiera.pop()
-        if problem.isGoalState(nodcrt[0]):
-            return nodcrt[1]
-        teritoriu.append(nodcrt[0])
-        succesori=problem.getSuccesors(nodcrt[0])
-        for succesor in succesori:
-            (stare, mutare, )=succesor   
-            if stare not in teritoriu and stare not in (nodcrt[0] for nod in frontiera.list):
-                cale=nodcrt[1] + [mutare]
-                frontiera.push((stare, cale))
-
+    while not coada.isEmpty():
+        nod, directii = coada.pop()
+        "daca am ajuns la final returnam directiile"
+        if problem.isGoalState(nod):
+            return directii
+        succesori = problem.expand(nod)
+        "ma uit la succesoruii nodului curent"
+        for i in succesori:
+            coordonataCurenta = i[0]
+            "coordonata nodului (x,y)"
+            if not coordonataCurenta in noduriExplorate:
+                "daca coordonata nu este in nodurile explorate"
+                directie = i[1]
+                "directia pe unde trebuie sa o iau"
+                noduriExplorate.append(coordonataCurenta)
+                coada.push((coordonataCurenta, directii + [directie]))
+                "pun i stiva coordonata curenta si directia "
     return []
-
-def uniformCostSearch(problem):
-    """Search the node of least total cost first."""
-    "*** YOUR CODE HERE ***"
-    nodCrt = (problem.getStartState, []) # primul nod, care incepe de la starea initiala a problemei, stare initiala, lista de actiuni la inceput vida
-    frontiera=util.PriorityQueue()  #frontiera trebuie sa fie coada cu prioritati
-    teritoriu =[] #noduri expandate, la inceput nu avem niciun nod expandat
-    
-    #(nodCrt, 0): pentru fiecare nod se asociaza COSTUL
-    #se pune initial 0, intrucat pt a te deplasa din stare initiala in ea insasi, costul ar fi 0
-    frontiera.push(nodCrt, 0) #nodul initial se adauga la inceput in frontiera
-    
-    #cat timp frontiera nu este vida
-    while not frontiera.isEmpty():
-        nodCrt = frontiera.pop() #nod obtinut din frontiera, nod cu prioritate maxima
-        #verificam daca starea asociata acestui nod este stare finala sau nu
-         
-        #accesez starea, e primul element: nodCrt[0], 
-        if(problem.isGoalState(nodCrt[0])):
-            #nodCrt[1] :reprezinta lista de actiuni care trebuie efectuate pentru a se ajunge in starea finala dorita
-            return nodCrt[1]  #starea curenta == cu starea finala
-        #nu ne aflam in starea finala, deci trebuie sa adaugam la acest teritoriu, multimea starilor
-        #adaug din nodul curent doar starea asociata nodului
-        teritoriu.append(nodCrt[0])
-        #dupa ce adauf starea
-        #vreau sa obtin succesorii acestei sati curente
-        succesori=problem.getSuccesors(nodCrt[0]) #expandex cu starea care se gaseste in nodul curent
-       
-        #pt fiecare succeor gasit in lista de succesori
-        #se returneaza lista succesorilor pentru fiecare din succesori, cunoscandu-se starea, mutarea si costul mutarii
-        for succesor in succesori:
-            (stare, mutare, cost)=succesor
-            #daca starea nu se gaseste in teritoriu
-            if stare not in teritoriu:
-                #poate/nu poate sa fie in frontiera
-                #dar noi avem deja coada de prioritati, si see verifica, facandu-se update daca este nevoie
-                # a se vedea in util.py, functia: def update(self, item, priority)
-                #explicatie:daca are o prioritate mai mica, face updat, pt prioritatea maxima, altfel, face direct adaugarea
-
-                #se calculeaza noua cale
-                # nodCrt[1]: este lista de actiuni pe care o voi concatena cu nutarea asociata  listei de actiuni/cale (este in lista numita "mutare")
-                cale = nodCrt[1] + [mutare]
-                #calculez valoarea asociata acestei noi stari
-                q = problem.getCostOfActionSequence(cale)
-                #partea de adaugare
-                frontiera.update((stare, cale), q) #introduc un nou nod, format din noul succesor si calea sa, iar prioritatea este valoarea q
-
-    return []  #esec 
-
+    util.raiseNotDefined()
 
 def nullHeuristic(state, problem=None):
     """
@@ -195,60 +208,50 @@ def nullHeuristic(state, problem=None):
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
-    
-    frontiera=util.PriorityQueue()  
-    teritoriu =[] 
+    "*** YOUR CODE HERE ***"   
 
-    #doar aici se fac modificari, adaugandu-se partea de euristica
-    h=heuristic(problem.getStartState(), problem) #par1: starea pentru care se calculeaza functia euristica= starea initiala
-   
-    g=0 #costul real din starea initiala, in starea finala, este=0
-    f=g+h
-    nodCrt = (problem.getStartState, [])  #nodul curent care se creaza in aceasta situatie
-    frontiera.push(nodCrt, f) #se adauga nodul curent si costul sau (f)
+    startState = problem.getStartState()
+    coadaDePrioritati = util.PriorityQueue()
+    noduriExplorate = []
+    coadaDePrioritati.push((startState, [], 0), 0)
 
-    while not frontiera.isEmpty():
-        nodCrt = frontiera.pop() #se extrage un nod
-        if(problem.isGoalState(nodCrt[0])): #daca starea este stare finala
-            return nodCrt[1]   #returnam lista de actiuni
-        teritoriu.append(nodCrt[0]) #adaugam starea respectiva in teritoriu
-        succesori=problem.getSuccesors(nodCrt[0])  #obtin succesorii nodului curent
-        for succesor in succesori: #pt fiecare succesor, vom avea: 
-            (stare, mutare, cost)=succesor #stare. mutare, cost aferent
+    while not coadaDePrioritati.isEmpty():
+
+        nod, directii, cost = coadaDePrioritati.pop()
+        currentNode = (nod, cost)
+        noduriExplorate.append(currentNode)
+
+        if problem.isGoalState(nod):
+            return directii
         
-            if stare not in teritoriu: #stare ce nu e in teritoriu
-               #voi calcula 
-                cale = nodCrt[1] + [mutare]
-               
-                q = problem.getCostOfActionSequence(cale)
-                #cost pana in stare curenta
-               
-               
-                #in euristica, se pune cale, nu problem.getStartState()-starea curenta
-                h=heuristic(stare, problem) #par1: starea pentru care se calculeaza functia euristica= starea initiala
-               
-                #in frontiera se actualizeaza cu aceasta stare in calea specificata de g
-                frontiera.update((stare, cale), q) 
+        succesori = problem.expand(nod)
+
+        for i in succesori:
+            noulCost = problem.getCostOfActionSequence(directii + [i[1]])
+            noulNod = (i[0], directii + [i[1]], noulCost)
+
+            vizitat = False
+
+            for j in noduriExplorate:
+                jState, jCost = j
+
+                if (i[0] == jState) and (noulCost >= jCost):
+                    vizitat = True
+
+            if not vizitat:
+                coadaDePrioritati.push(noulNod, noulCost + heuristic(i[0], problem))
+                noduriExplorate.append((i[0], noulCost))
+
 
     return []
 
 
-#A* cautarea informata
-#reprezinta toate actiunile/mutarile, de la starea initiala, la starea curenta
-#la care se adauga h (): euristica=costul estimat de la starea curenta, la starea finala
-#h: nu trebuie sa suraestimeze costul real
-#Suma Menhetan: suma celor doua distante implementata in util.py
+    util.raiseNotDefined()
+
 
 
 # Abbreviations
 bfs = breadthFirstSearch
 dfs = depthFirstSearch
 astar = aStarSearch
-ucs = uniformCostSearch
-
-#de pus obstacole in labirint:
-
-#lista tuturor pozitiilor, care reprezinta puncte
-#starea initiala: cand atinge un obiect, il scoate din starea curenta, din lista de pozitii cautate
-# operatii posibile 
-#stare finala, camd lista respectiva este vida
+rs=randomSearch

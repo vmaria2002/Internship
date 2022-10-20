@@ -113,7 +113,7 @@ class SearchAgent(Agent):
         starttime = time.time()
         problem = self.searchType(state) # Makes a new search problem
         self.actions  = self.searchFunction(problem) # Find a path
-        totalCost = problem.getCostOfActions(self.actions)
+        totalCost = problem.getCostOfActionSequence(self.actions)
         print('Path found with total cost of %d in %.1f seconds' % (totalCost, time.time() - starttime))
         if '_expanded' in dir(problem): print('Search nodes expanded: %d' % problem._expanded)
 
@@ -135,7 +135,7 @@ class SearchAgent(Agent):
 
 class PositionSearchProblem(search.SearchProblem):
     """
-    A search problem defines the state space, start state, goal test, successor
+    A search problem defines the state space, start state, goal test, child
     function and cost function.  This search problem can be used to find paths
     to a particular point on the pacman board.
 
@@ -180,27 +180,23 @@ class PositionSearchProblem(search.SearchProblem):
 
         return isGoal
 
-    def getSuccessors(self, state):
+    def expand(self, state):
         """
-        Returns successor states, the actions they require, and a cost of 1.
+        Returns child states, the actions they require, and a cost of 1.
 
          As noted in search.py:
              For a given state, this should return a list of triples,
-         (successor, action, stepCost), where 'successor' is a
-         successor to the current state, 'action' is the action
+         (child, action, stepCost), where 'child' is a
+         child to the current state, 'action' is the action
          required to get there, and 'stepCost' is the incremental
-         cost of expanding to that successor
+         cost of expanding to that child
         """
 
-        successors = []
-        for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            x,y = state
-            dx, dy = Actions.directionToVector(action)
-            nextx, nexty = int(x + dx), int(y + dy)
-            if not self.walls[nextx][nexty]:
-                nextState = (nextx, nexty)
-                cost = self.costFn(nextState)
-                successors.append( ( nextState, action, cost) )
+        children = []
+        for action in self.getActions(state):
+            nextState = self.getNextState(state, action)
+            cost = self.getActionCost(state, action, nextState)
+            children.append( ( nextState, action, cost) )
 
         # Bookkeeping for display purposes
         self._expanded += 1 # DO NOT CHANGE
@@ -208,9 +204,33 @@ class PositionSearchProblem(search.SearchProblem):
             self._visited[state] = True
             self._visitedlist.append(state)
 
-        return successors
+        return children
 
-    def getCostOfActions(self, actions):
+    def getActions(self, state):
+        possible_directions = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
+        valid_actions_from_state = []
+        for action in possible_directions:
+            x, y = state
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            if not self.walls[nextx][nexty]:
+                valid_actions_from_state.append(action)
+        return valid_actions_from_state
+
+    def getActionCost(self, state, action, next_state):
+        assert next_state == self.getNextState(state, action), (
+            "Invalid next state passed to getActionCost().")
+        return self.costFn(next_state)
+
+    def getNextState(self, state, action):
+        assert action in self.getActions(state), (
+            "Invalid action passed to getActionCost().")
+        x, y = state
+        dx, dy = Actions.directionToVector(action)
+        nextx, nexty = int(x + dx), int(y + dy)
+        return (nextx, nexty)
+
+    def getCostOfActionSequence(self, actions):
         """
         Returns the cost of a particular sequence of actions. If those actions
         include an illegal move, return 999999.
@@ -225,6 +245,20 @@ class PositionSearchProblem(search.SearchProblem):
             if self.walls[x][y]: return 999999
             cost += self.costFn((x,y))
         return cost
+
+class CustomNode :
+
+    def __init__ ( self , name , cost ) :
+        self . name = name # attribute name
+        self . cost = cost # attribute cost
+
+    def getName ( self ) :
+      return self . name
+
+    def getCost ( self ) :
+        return self . cost
+
+   
 
 class StayEastSearchAgent(SearchAgent):
     """
@@ -270,7 +304,7 @@ class CornersProblem(search.SearchProblem):
     """
     This search problem finds paths through all four corners of a layout.
 
-    You must select a suitable state space and successor function
+    You must select a suitable state space and child function
     """
 
     def __init__(self, startingGameState):
@@ -288,6 +322,8 @@ class CornersProblem(search.SearchProblem):
         # Please add any code here which you would like to use
         # in initializing the problem
         "*** YOUR CODE HERE ***"
+        self.right = right
+        self.top = top
 
     def getStartState(self):
         """
@@ -295,41 +331,87 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        allCorners = (False, False, False, False)
+        return  (self.startingPosition, allCorners)
+        #util.raiseNotDefined()
 
     def isGoalState(self, state):
         """
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        colturiVizitate = state[1]
+        return colturiVizitate[0] and colturiVizitate[1] and colturiVizitate[2]  and colturiVizitate[3]
+        #util.raiseNotDefined()
 
-    def getSuccessors(self, state):
+    def expand(self, state):
         """
-        Returns successor states, the actions they require, and a cost of 1.
+        Returns child states, the actions they require, and a cost of 1.
 
          As noted in search.py:
-            For a given state, this should return a list of triples, (successor,
-            action, stepCost), where 'successor' is a successor to the current
+            For a given state, this should return a list of triples, (child,
+            action, stepCost), where 'child' is a child to the current
             state, 'action' is the action required to get there, and 'stepCost'
-            is the incremental cost of expanding to that successor
+            is the incremental cost of expanding to that child
         """
 
-        successors = []
-        for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            # Add a successor state to the successor list if the action is legal
-            # Here's a code snippet for figuring out whether a new position hits a wall:
-            #   x,y = currentPosition
-            #   dx, dy = Actions.directionToVector(action)
-            #   nextx, nexty = int(x + dx), int(y + dy)
-            #   hitsWall = self.walls[nextx][nexty]
-
+        children = []
+        for action in self.getActions(state):
+            # Add a child state to the child list if the action is legal
+            # You should call getActions, getActionCost, and getNextState.
             "*** YOUR CODE HERE ***"
+            pozitie, colturiVizitate = state
+            x,y = pozitie
+            dx,dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            hitsWall = self.walls[nextx][nexty]
+            nextState = (nextx, nexty)
+            if not hitsWall:
+                if nextState in self.corners:
+                    if nextState == (self.right, 1):
+                        newCorners = [True, colturiVizitate[1], colturiVizitate[2], colturiVizitate[3]]
+                    elif nextState == (self.right, self.top):
+                        newCorners = [colturiVizitate[0], True, colturiVizitate[2], colturiVizitate[3]]
+                    elif nextState == (1, self.top):
+                        newCorners = [colturiVizitate[0], colturiVizitate[1], True, colturiVizitate[3]]
+                    elif nextState == (1, 1):
+                        newCorners = [colturiVizitate[0], colturiVizitate[1], colturiVizitate[2], True]
+                    successor = ((nextState, newCorners), action, 1)
+                else:
+                    successor = ((nextState, colturiVizitate), action, 1)
+                children.append(successor)
+
 
         self._expanded += 1 # DO NOT CHANGE
-        return successors
+        return children
 
-    def getCostOfActions(self, actions):
+    def getActions(self, state):
+        possible_directions = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
+        valid_actions_from_state = []
+        for action in possible_directions:
+            x, y = state[0]
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            if not self.walls[nextx][nexty]:
+                valid_actions_from_state.append(action)
+        return valid_actions_from_state
+
+    def getActionCost(self, state, action, next_state):
+        assert next_state == self.getNextState(state, action), (
+            "Invalid next state passed to getActionCost().")
+        return 1
+
+    def getNextState(self, state, action):
+        assert action in self.getActions(state), (
+            "Invalid action passed to getActionCost().")
+        x, y = state[0]
+        dx, dy = Actions.directionToVector(action)
+        nextx, nexty = int(x + dx), int(y + dy)
+        "*** YOUR CODE HERE ***"
+        return (nextx,nexty)
+        #util.raiseNotDefined()
+
+    def getCostOfActionSequence(self, actions):
         """
         Returns the cost of a particular sequence of actions.  If those actions
         include an illegal move, return 999999.  This is implemented for you.
@@ -390,21 +472,43 @@ class FoodSearchProblem:
     def isGoalState(self, state):
         return state[1].count() == 0
 
-    def getSuccessors(self, state):
-        "Returns successor states, the actions they require, and a cost of 1."
-        successors = []
+    def expand(self, state):
+        "Returns child states, the actions they require, and a cost of 1."
+        children = []
         self._expanded += 1 # DO NOT CHANGE
-        for direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            x,y = state[0]
-            dx, dy = Actions.directionToVector(direction)
+        for action in self.getActions(state):
+            next_state = self.getNextState(state, action)
+            action_cost = self.getActionCost(state, action, next_state)
+            children.append( ( next_state, action, action_cost) )
+        return children
+
+    def getActions(self, state):
+        possible_directions = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
+        valid_actions_from_state = []
+        for action in possible_directions:
+            x, y = state[0]
+            dx, dy = Actions.directionToVector(action)
             nextx, nexty = int(x + dx), int(y + dy)
             if not self.walls[nextx][nexty]:
-                nextFood = state[1].copy()
-                nextFood[nextx][nexty] = False
-                successors.append( ( ((nextx, nexty), nextFood), direction, 1) )
-        return successors
+                valid_actions_from_state.append(action)
+        return valid_actions_from_state
 
-    def getCostOfActions(self, actions):
+    def getActionCost(self, state, action, next_state):
+        assert next_state == self.getNextState(state, action), (
+            "Invalid next state passed to getActionCost().")
+        return 1
+
+    def getNextState(self, state, action):
+        assert action in self.getActions(state), (
+            "Invalid action passed to getActionCost().")
+        x, y = state[0]
+        dx, dy = Actions.directionToVector(action)
+        nextx, nexty = int(x + dx), int(y + dy)
+        nextFood = state[1].copy()
+        nextFood[nextx][nexty] = False
+        return ((nextx, nexty), nextFood)
+
+    def getCostOfActionSequence(self, actions):
         """Returns the cost of a particular sequence of actions.  If those actions
         include an illegal move, return 999999"""
         x,y= self.getStartState()[0]
@@ -469,7 +573,7 @@ class ClosestDotSearchAgent(SearchAgent):
                 if action not in legal:
                     t = (str(action), str(currentState))
                     raise Exception('findPathToClosestDot returned an illegal move: %s!\n%s' % t)
-                currentState = currentState.generateSuccessor(0, action)
+                currentState = currentState.generateChild(0, action)
         self.actionIndex = 0
         print('Path found with cost %d.' % len(self.actions))
 
@@ -493,7 +597,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
 
     This search problem is just like the PositionSearchProblem, but has a
     different goal test, which you need to fill in below.  The state space and
-    successor function do not need to be changed.
+    child function do not need to be changed.
 
     The class definition above, AnyFoodSearchProblem(PositionSearchProblem),
     inherits the methods of the PositionSearchProblem.
@@ -533,8 +637,8 @@ def mazeDistance(point1, point2, gameState):
 
     This might be a useful helper function for your ApproximateSearchAgent.
     """
-    (x1, y1) = point1
-    (x2, y2) = point2
+    x1, y1 = point1
+    x2, y2 = point2
     walls = gameState.getWalls()
     assert not walls[x1][y1], 'point1 is a wall: ' + str(point1)
     assert not walls[x2][y2], 'point2 is a wall: ' + str(point2)

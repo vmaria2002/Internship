@@ -1,0 +1,58 @@
+//Gasite
+python pacman.py -p RandomAgent -l testClassic
+
+PS C:\Users\vasil\OneDrive\Desktop\pac3man-maste\search> 
+Corner:
+python pacman.py -l tinyCorners -p SearchAgent -a fn=bfs,prob=CornersProblem
+
+python pacman.py -p RandomAgent -l testClassic
+
+python pacman.py -p MinimaxAgent -l minimaxClassic -a depth=4
+python pacman.py -p ReflexAgent
+python pacman.py -p RandomAgent -l testClassic
+
+Euristica pentru Corner:
+python pacman.py -l mediumCorners -p SearchAgent -a fn=aStarSearch,prob=CornersProblem,heuristic=cornersHeuristic
+
+Euristica mancarii:
+python pacman.py -l testSearch -p SearchAgent -a fn=astar,prob=FoodSearchProblem,heuristic=foodHeuristic
+
+Reflex:
+python pacman.py -p RandomAgent -l testClassic
+python pacman.py -p ReflexAgent
+
+
+
+python pacman.py -l bigMaze -z .5 -p SearchAgent -a fn=astar,heuristic=manhattanHeuristic
+
+python pacman.py -l testSearch -z .5 -p SearchAgent -a fn=astar,prob=FoodSearchProblem,heuristic=foodHeuristic
+
+python pacman.py -l tinyCorners -p SearchAgent -a fn=bfs,prob=CornersProblem
+
+python pacman.py -l mediumCorners -p SearchAgent -a fn=bfs,prob=CornersProblem	
+	
+	python pacman.py -l testMaze -p GoWestAgent
+	python pacman.py -l tinyMaze -p GoWestAgent (nu)
+	python pacman.py -l tinyMaze -p SearchAgent -a fn=tinyMazeSearch --frameTime=1
+	python pacman.py -l smallMaze -p SearchAgent
+	python pacman.py -l smallMaze -p SearchAgent
+	python pacman.py -l tinyMaze -p SearchAgent
+	python pacman.py -l mediumMaze -p SearchAgent
+	python pacman.py -l bigMaze -z .5 -p SearchAgent
+	python pacman.py -l mediumMaze -p SearchAgent -a fn=bfs
+	python pacman.py -l mediumMaze -p SearchAgent -a fn=ucs(nu)
+	python pacman.py -l mediumDottedMaze -p StayEastSearchAgent(nu)
+	python pacman.py -l mediumScaryMaze -p StayWestSearchAgent(nu)
+	
+	random:
+	python pacman.py -l tinyMaze -p SearchAgent -a fn=rs
+	
+	A*
+	
+	python pacman.py -l testSearch -p AStarFoodSearchAgent
+	python pacman.py -l testSearch -p SearchAgent -a fn=astar,prob=FoodSearchProblem,heuristic=foodHeuristic
+	
+	
+	
+	`1.modifica sa nu fiw expand, ci getSuccesors!!
+	2.comentarii

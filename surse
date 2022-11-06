@@ -1,2 +1,30 @@
 https://github.com/ruxipop/UTCN/tree/main/Artificial%20Intelligence/Project-1
 https://github.com/davide97l/Pacman
+
+
+def cornersHeuristic(state, problem):
+    """
+    A heuristic for the CornersProblem that you defined.
+
+      state:   The current search state
+               (a data structure you chose in your search problem)
+
+      problem: The CornersProblem instance for this layout.
+
+    This function should always return a number that is a lower bound on the
+    shortest path from the state to a goal of the problem; i.e.  it should be
+    admissible (as well as consistent).
+    """
+    corners = problem.corners # These are the corner coordinates
+    walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
+
+    "*** YOUR CODE HERE ***"
+    h1 = len(state[1]) #nr of coners
+    dist = []
+    curentPosition = state[0]
+    for corner in state[1]:
+        dist.append(abs(curentPosition[0] - corner[0]) + abs(curentPosition[1] - corner[1]))
+    if h1 == 0:
+        return h1
+    h2 = max(dist)
+    return h2 # Default to trivial solution

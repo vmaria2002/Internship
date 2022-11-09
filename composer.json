@@ -1,254 +1,300 @@
-#https://github.com/lyzfrank/AI-Pacman/blob/master/uninformed_search.py
-# search.py
-# ---------
-# Licensing Information:  You are free to use or extend these projects for
-# educational purposes provided that (1) you do not distribute or publish
-# solutions, (2) you retain this notice, and (3) you provide clear
-# attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
-# 
-# Attribution Information: The Pacman AI projects were developed at UC Berkeley.
-# The core projects and autograders were primarily created by John DeNero
-# (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
-# Student side autograding was added by Brad Miller, Nick Hay, and
-# Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
-"""
-In search.py, you will implement generic search algorithms which are called by
-Pacman agents (in searchAgents.py).
-"""
 
-import util
+from util import manhattanDistance
+from game import Directions
+import random, util
 
-class SearchProblem:
+from game import Agent
+
+class ReflexAgent(Agent):
     """
-    This class outlines the structure of a search problem, but doesn't implement
-    any of the methods (in object-oriented terminology: an abstract class).
+    A reflex agent chooses an action at each choice point by examining
+    its alternatives via a state evaluation function.
 
-    You do not need to change anything in this class, ever.
+    The code below is provided as a guide.  You are welcome to change
+    it in any way you see fit, so long as you don't touch our method
+    headers.
     """
+    def getAction(self, gameState):
+        """
+        You do not need to change this method, but you're welcome to.
 
-    def getStartState(self):
-        """
-        Returns the start state for the search problem.
-        """
-        util.raiseNotDefined()
-         
+        getAction chooses among the best options according to the evaluation function.
 
-    def isGoalState(self, state):
+        Just like in the previous project, getAction takes a GameState and returns
+        some Directions.X for some X in the set {NORTH, SOUTH, WEST, EAST, STOP}
         """
-          state: Search state
+        # Collect legal moves and child states
+        legalMoves = gameState.getLegalActions()
 
-        Returns True if and only if the state is a valid goal state.
-        """
-        util.raiseNotDefined()
+        # Choose one of the best actions
+        scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
+        bestScore = max(scores)
+        bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
+        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+
+        "Add more of your code here if you want to"
+
+        return legalMoves[chosenIndex]
+
+    def evaluationFunction(self, currentGameState, action):
+        #mrotodele de staresunt implementate in pacman.py
+        childGameState = currentGameState.getPacmanState(action)
+        newPos = childGameState.getPacmanPosition()
+        newFood = childGameState.getFood()
+        newGhostStates = childGameState.getGhostStates()
+        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+
+        "*** YOUR CODE HERE ***"
         
+        foodList = newFood.asList()
+        foodDistance = []
+        ghostDistance = []
 
-    def getSuccessors(self, state):
-        """
-          state: Search state
+        #cautam cea mai apropiata bucata de mancare, din toate existenta
+        #a follosit distanta Menhetten pentru calcularea celei mai apropiate bucata de mancare
+        for food in foodList:
+            foodDistance.append(util.manhattanDistance(newPos, food))
 
-        For a given state, this should return a list of triples, (successor,
-        action, stepCost), where 'successor' is a successor to the current
-        state, 'action' is the action required to get there, and 'stepCost' is
-        the incremental cost of expanding to that successor.
-        """
-        util.raiseNotDefined()
+        if len(foodDistance) == 0:
+            return 500
+        closestFood = min(foodDistance)
 
-    def getCostOfActions(self, actions):
-        """
-        actions: A list of actions to take
+        #distanta pana la cea mai apropiata fantoma
+        for ghost in childGameState.getGhostPositions():
+            ghostDistance.append(util.manhattanDistance(newPos, ghost))
 
-        This method returns the total cost of a particular sequence of actions.
-        The sequence must be composed of legal moves.
-        """
-        util.raiseNotDefined()
+        if newPos in childGameState.getGhostPositions():
+            return -100
+        closestGhost = min(ghostDistance)
         
+        #se identifica starea de stop. Se calcueleaza cat scorul in functie de  timp si pun
+        rez = closestGhost / closestFood
+        timer = 0
+        if action == 'Stop':
+            timer -= 50
 
+        return childGameState.getScore() + rez + timer
 
-def tinyMazeSearch(problem):
+def scoreEvaluationFunction(currentGameState):
     """
-    Returns a sequence of moves that solves tinyMaze.  For any other maze, the
-    sequence of moves will be incorrect, so only use this for tinyMaze.
+    This default evaluation function just returns the score of the state.
+    The score is the same one displayed in the Pacman GUI.
+
+    This evaluation function is meant for use with adversarial search agents
+    (not reflex agents).
     """
-    from game import Directions
-    s = Directions.SOUTH
-    w = Directions.WEST
-    return  [s, s, w, s, w, w, s, w]
+    return currentGameState.getScore()
 
-def depthFirstSearch(problem):
+class MultiAgentSearchAgent(Agent):
     """
-    Search the deepest nodes in the search tree first.
+    This class provides some common elements to all of your
+    multi-agent searchers.  Any methods defined here will be available
+    to the MinimaxPacmanAgent, AlphaBetaPacmanAgent & ExpectimaxPacmanAgent.
 
-    Your search algorithm needs to return a list of actions that reaches the
-    goal. Make sure to implement a graph search algorithm.
+    You *do not* need to make any changes here, but you can if you want to
+    add functionality to all your adversarial search agents.  Please do not
+    remove anything, however.
 
-    To get started, you might want to try some of these simple commands to
-    understand the search problem that is being passed in:
-
-    print("Start:", problem.getStartState())
-    print("Is the start a goal?", problem.isGoalState(problem.getStartState()))
-    print("Start's successors:", problem.getSuccessors(problem.getStartState()))
+    Note: this is an abstract class: one that should not be instantiated.  It's
+    only partially specified, and designed to be extended.  Agent (game.py)
+    is another abstract class.
     """
-    "*** YOUR CODE HERE ***"
-    nodcrt= (problem.getStartState(), [])
-    frontiera=util.Stack()
-    teritoriu = []
-    frontiera.push(nodcrt)
 
-    while not frontiera.isEmpty():
-        nodcrt= frontiera.pop()
-        if problem.isGoalState(nodcrt[0]):
-            return nodcrt[1]
-        teritoriu.append(nodcrt[0])
-        succesori=problem.expend(nodcrt[0])
-        for succesor in succesori:
-            (stare, mutare, cost)=succesor   
-            if stare not in teritoriu and stare not in (nodcrt[0] for nod in frontiera.list):
-                cale=nodcrt[1] + [mutare]
-                frontiera.push((stare, cale))
+    def __init__(self, evalFn = 'scoreEvaluationFunction', depth = '2'):
+        self.index = 0 # Pacman is always agent index 0
+        self.evaluationFunction = util.lookup(evalFn, globals())
+        self.depth = int(depth)
 
-    return []
+class MinimaxAgent(MultiAgentSearchAgent):
+    """
+    Your minimax agent (question 2)
+    """
 
+    def getAction(self, gameState):
 
-def breadthFirstSearch(problem):
-    """Search the shallowest nodes in the search tree first."""
-    "*** YOUR CODE HERE ***"
-   
-    nodcrt = (problem.getStartState(), [])  #in aceasta frontiera este o pereche de ( starea, actiuni necesare pentru accesarea starii)
-    frontiera= util.Queue()
-    teritoriu = []
-
-    #aici ce trebuie sa fie frontiera???
-
-    frontiera.push(nodcrt)
-
-    while not frontiera.isEmpty():
-        nodcrt= frontiera.pop()
-        if problem.isGoalState(nodcrt[0]):
-            return nodcrt[1]
-        teritoriu.append(nodcrt[0])
-        succesori=problem.getSuccesors(nodcrt[0])
-        for succesor in succesori:
-            (stare, mutare, )=succesor   
-            if stare not in teritoriu and stare not in (nodcrt[0] for nod in frontiera.list):
-                cale=nodcrt[1] + [mutare]
-                frontiera.push((stare, cale))
-
-    return []
-
-def uniformCostSearch(problem):
-    """Search the node of least total cost first."""
-    "*** YOUR CODE HERE ***"
-    nodCrt = (problem.getStartState, []) # primul nod, care incepe de la starea initiala a problemei, stare initiala, lista de actiuni la inceput vida
-    frontiera=util.PriorityQueue()  #frontiera trebuie sa fie coada cu prioritati
-    teritoriu =[] #noduri expandate, la inceput nu avem niciun nod expandat
-    
-    #(nodCrt, 0): pentru fiecare nod se asociaza COSTUL
-    #se pune initial 0, intrucat pt a te deplasa din stare initiala in ea insasi, costul ar fi 0
-    frontiera.push(nodCrt, 0) #nodul initial se adauga la inceput in frontiera
-    
-    #cat timp frontiera nu este vida
-    while not frontiera.isEmpty():
-        nodCrt = frontiera.pop() #nod obtinut din frontiera, nod cu prioritate maxima
-        #verificam daca starea asociata acestui nod este stare finala sau nu
-         
-        #accesez starea, e primul element: nodCrt[0], 
-        if(problem.isGoalState(nodCrt[0])):
-            #nodCrt[1] :reprezinta lista de actiuni care trebuie efectuate pentru a se ajunge in starea finala dorita
-            return nodCrt[1]  #starea curenta == cu starea finala
-        #nu ne aflam in starea finala, deci trebuie sa adaugam la acest teritoriu, multimea starilor
-        #adaug din nodul curent doar starea asociata nodului
-        teritoriu.append(nodCrt[0])
-        #dupa ce adauf starea
-        #vreau sa obtin succesorii acestei sati curente
-        succesori=problem.getSuccesors(nodCrt[0]) #expandex cu starea care se gaseste in nodul curent
        
-        #pt fiecare succeor gasit in lista de succesori
-        #se returneaza lista succesorilor pentru fiecare din succesori, cunoscandu-se starea, mutarea si costul mutarii
-        for succesor in succesori:
-            (stare, mutare, cost)=succesor
-            #daca starea nu se gaseste in teritoriu
-            if stare not in teritoriu:
-                #poate/nu poate sa fie in frontiera
-                #dar noi avem deja coada de prioritati, si see verifica, facandu-se update daca este nevoie
-                # a se vedea in util.py, functia: def update(self, item, priority)
-                #explicatie:daca are o prioritate mai mica, face updat, pt prioritatea maxima, altfel, face direct adaugarea
+        def miniMax(gameState, depth, agentIndex):
 
-                #se calculeaza noua cale
-                # nodCrt[1]: este lista de actiuni pe care o voi concatena cu nutarea asociata  listei de actiuni/cale (este in lista numita "mutare")
-                cale = nodCrt[1] + [mutare]
-                #calculez valoarea asociata acestei noi stari
-                q = problem.getCostOfActionSequence(cale)
-                #partea de adaugare
-                frontiera.update((stare, cale), q) #introduc un nou nod, format din noul succesor si calea sa, iar prioritatea este valoarea q
+            #se ajunge in argore la starea de la are se doreste sa parcurga  agentul arborele 
+            #ne ajuta sa punem agentul pemax
+            if agentIndex >= gameState.getNumAgents():
+                depth += 1  #se merge la adancimea doita
+                agentIndex = 0
 
-    return []  #esec 
+            #s-a ajuns in radacina arborelui, pentru ca jocul incepe cu Max, vom impune sa se 
+            # faca Max pe radacina, aplicandu-se functia de max pe 
+            if agentIndex == 0:
+                result = maxFunction(gameState, depth, agentIndex)
+                return result
+            #este urmatorul pas dupa Max, se apeleaza functia minim
+            if agentIndex !=0:
+                result = minFunction(gameState, depth, agentIndex)
+                return result
 
+            #conditie de terminare a cautarii
+            if depth == self.depth or gameState.isWin() or gameState.isLose():
+                return self.evaluationFunction(gameState)
 
-def nullHeuristic(state, problem=None):
-    """
-    A heuristic function estimates the cost from the current state to the nearest
-    goal in the provided SearchProblem.  This heuristic is trivial.
-    """
-    return 0
+        def minFunction(gameState, depth, agentIndex):
+            minAction = None
+            #se initializeaza cu cea mai mare valoare posibila
+            minValue = float('inf')
+            #se obtin toate actiunile pe care le-ar putea face din pozitia in care se afla
+            actionList = gameState.getLegalActions(agentIndex)
 
-def aStarSearch(problem, heuristic=nullHeuristic):
-    """Search the node that has the lowest combined cost and heuristic first."""
-    
-    frontiera=util.PriorityQueue()  
-    teritoriu =[] 
-
-    #doar aici se fac modificari, adaugandu-se partea de euristica
-    h=heuristic(problem.getStartState(), problem) #par1: starea pentru care se calculeaza functia euristica= starea initiala
-   
-    g=0 #costul real din starea initiala, in starea finala, este=0
-    f=g+h
-    nodCrt = (problem.getStartState, [])  #nodul curent care se creaza in aceasta situatie
-    frontiera.push(nodCrt, f) #se adauga nodul curent si costul sau (f)
-
-    while not frontiera.isEmpty():
-        nodCrt = frontiera.pop() #se extrage un nod
-        if(problem.isGoalState(nodCrt[0])): #daca starea este stare finala
-            return nodCrt[1]   #returnam lista de actiuni
-        teritoriu.append(nodCrt[0]) #adaugam starea respectiva in teritoriu
-        succesori=problem.getSuccesors(nodCrt[0])  #obtin succesorii nodului curent
-        for succesor in succesori: #pt fiecare succesor, vom avea: 
-            (stare, mutare, cost)=succesor #stare. mutare, cost aferent
+            for action in actionList:
+                nextState = gameState.getNextState(agentIndex, action)
+                #se parcurge arorele pentru a alege dace este in min sau max
+                eval = miniMax(nextState, depth, agentIndex + 1)
+                #vom obtine o lista cu toate valorile pe care le poate alege in min-max
+                if type(eval) is not list:
+                    aux = eval
+                else:
+                    #prima este asezata in ordinea dorita, se mentine relatia de ordine orita
+                    aux = eval[1]
+                # se updateaza valoarea minima    
+                if aux < minValue:
+                    minValue = aux
+                    minAction = action
+            #daca nu mai avem actiuni pe care sa le expandam, putem iesi din functie        
+            if len(actionList) == 0:
+                return self.evaluationFunction(gameState)
         
-            if stare not in teritoriu: #stare ce nu e in teritoriu
-               #voi calcula 
-                cale = nodCrt[1] + [mutare]
-               
-                q = problem.getCostOfActionSequence(cale)
-                #cost pana in stare curenta
-               
-               
-                #in euristica, se pune cale, nu problem.getStartState()-starea curenta
-                h=heuristic(stare, problem) #par1: starea pentru care se calculeaza functia euristica= starea initiala
-               
-                #in frontiera se actualizeaza cu aceasta stare in calea specificata de g
-                frontiera.update((stare, cale), q) 
+            return [minAction, minValue]
 
-    return []
+        def maxFunction(gameState, depth, agentIndex):
+
+            maxAction = None
+            maxValue = float('-inf')
+            actionList = gameState.getLegalActions(agentIndex)
+            if len(actionList) == 0:
+                return self.evaluationFunction(gameState)
+
+            for action in actionList:
+                nextState = gameState.getNextState(agentIndex, action)
+                eval = miniMax(nextState, depth, agentIndex + 1)
+                if type(eval) is not list:
+                    aux = eval
+                else:
+                    aux = eval[1]
+                if aux > maxValue:
+                    maxValue = aux
+                    maxAction = action
+            return [maxAction, maxValue]
+
+        actions = miniMax(gameState, 0, 0)
+        return actions[0]
 
 
-#A* cautarea informata
-#reprezinta toate actiunile/mutarile, de la starea initiala, la starea curenta
-#la care se adauga h (): euristica=costul estimat de la starea curenta, la starea finala
-#h: nu trebuie sa suraestimeze costul real
-#Suma Menhetan: suma celor doua distante implementata in util.py
+class AlphaBetaAgent(MultiAgentSearchAgent):
+    """
+    Your minimax agent with alpha-beta pruning (question 3)
+    """
 
+    def getAction(self, gameState):
+        """
+        Returns the minimax action using self.depth and self.evaluationFunction
+        """
+        "*** YOUR CODE HERE ***"
 
-# Abbreviations
-bfs = breadthFirstSearch
-dfs = depthFirstSearch
-astar = aStarSearch
-ucs = uniformCostSearch
+        def AlphaBeta(gameState, depth, agentIndex, alpha, beta):
 
-#de pus obstacole in labirint:
+            #initializare
+            if agentIndex >= gameState.getNumAgents():
+                depth += 1
+                agentIndex = 0
+           #pt max
+            elif agentIndex == 0:
+                result = maxFunction(gameState, depth, agentIndex, alpha, beta)
+                return result
+            else:
+                #pentru min
+                result = minFunction(gameState, depth, agentIndex, alpha, beta)
+                return result
 
-#lista tuturor pozitiilor, care reprezinta puncte
-#starea initiala: cand atinge un obiect, il scoate din starea curenta, din lista de pozitii cautate
-# operatii posibile 
-#stare finala, camd lista respectiva este vida
+            #sfarsit cautare
+            if depth == self.depth or gameState.isWin() or gameState.isLose():
+                return self.evaluationFunction(gameState)
+
+        def minFunction(gameState, depth, agentIndex, alpha, beta):
+
+            minAction = None
+            minValue = float('inf')
+            actionList = gameState.getLegalActions(agentIndex)
+            if len(actionList) == 0:
+                return self.evaluationFunction(gameState)
+
+            for action in actionList:
+                nextState = gameState.getNextState(agentIndex, action)
+                eval = AlphaBeta(nextState, depth, agentIndex + 1, alpha, beta)
+                if type(eval) is not list:
+                    aux = eval
+                else:
+                    aux = eval[1]
+                if aux < minValue:
+                    minValue = aux
+                    minAction = action
+                #gasim valoarea minima    
+                if aux < alpha:
+                    return [minAction, minValue]
+                beta = min(beta, aux)
+            return [minAction, minValue]
+
+        def maxFunction(gameState, depth, agentIndex, alpha, beta):
+
+            maxAction = None
+            maxValue = float('-inf')
+            actionList = gameState.getLegalActions(agentIndex)
+            if len(actionList) == 0:
+                return self.evaluationFunction(gameState)
+
+            for action in actionList:
+                nextState = gameState.getNextState(agentIndex, action)
+                eval = AlphaBeta(nextState, depth, agentIndex + 1, alpha, beta)
+                if type(eval) is not list:
+                    aux = eval
+                else:
+                    aux = eval[1]
+                if aux > maxValue:
+                    maxValue = aux
+                    maxAction = action
+                    
+                #se face pruning    
+                if aux > beta:
+                    return [maxAction, maxValue]
+                #update alpha
+                alpha = max(alpha, aux)
+            return [maxAction, maxValue]
+
+        actions = AlphaBeta(gameState, 0, 0, float('-inf'), float('inf'))
+        return actions[0]
+
+class ExpectimaxAgent(MultiAgentSearchAgent):
+    """
+      Your expectimax agent (question 4)
+    """
+
+    def getAction(self, gameState):
+        """
+        Returns the expectimax action using self.depth and self.evaluationFunction
+
+        All ghosts should be modeled as choosing uniformly at random from their
+        legal moves.
+        """
+        "*** YOUR CODE HERE ***"
+        util.raiseNotDefined()
+
+def betterEvaluationFunction(currentGameState):
+    """
+    Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
+    evaluation function (question 5).
+
+    DESCRIPTION: <write something here so we know what you did>
+    """
+    "*** YOUR CODE HERE ***"
+    util.raiseNotDefined()    
+
+# Abbreviation
+better = betterEvaluationFunction

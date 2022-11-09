@@ -1,0 +1,876 @@
+#jump:
+#nu avem voie sa sarim daca este un zid
+#miscarea pe diagonala costa radical din 2
+#d=miscare pe disgonsls permisa
+#
+# y = x+k ~d când nodul y poate fi atins luând k mișcări unitare de la
+# nodul x în direcția ~d. 
+#cand d ete diadonala, notam distantele pana la d1 si d2
+#strategie de cautare pentru eficientizarea cautarii
+#Nu trebuie sa exploram toate caile, deoarece este intotdeauna dominata directia de 
+#se creeaza o lista de vecini si se adauga cel mai dominant! Nu se mai analizeaza veciniii sus/jos/stanga, dcaca vecinul predominant  est ein dreapta!!
+#Se vor evalua doar succesorii, intalniti in calea dinspre tinta
+
+#pe drum, se calculeaza g(tinta)=g(start)+distanta(tinta, start)=>daca dam de obstacol->eroare, nu ebine->nu retin nimic
+
+ #taierea vecinilor: Neighbour Pruning Rules:
+ #tin 2 calcule: (1):p(x) -> viziteaza x si se termina cu n
+                #(2): P(x)-> setermina cu n:
+            #toate nodurile trebuie sa apartina vecinilor lui x
+#se vor taia toti vecinii cae au valoarea fara trecere prin x, mai mica <= decat cu trecere un x
+#pt diagonal se va taia daca avem mai mic < fara x comparat cu (cu x)
+#ramane ce e mai mare
+
+#idee: cand ajung la un vecin, nu il pun in lista, ci sar la cel mai indepartat dar care are directia X
+#daca asim, punem in lista cu n, daca nu, nu fac nimic
+
+
+#vom avea: punct de start: goal, punctul prin care se trece
+#se verifica dace este punct de saritura( cu max caii), daca nu, se ia alt nod initial, dorind sa se ajunga la tinta
+
+#puncte de cotitura: din parinte se merge pe diagonala
+
+
+import search
+import random
+import math
+_goal_state = [[1,2,3],
+               [4,5,6],
+               [7,8,0]]
+
+def index(item, seq):
+    """Helper function that returns -1 for non-found index value of a seq"""
+    try:
+        return seq.index(item)
+    except:
+        return -1
+
+class EightPuzzle:
+
+    def __init__(self):
+        # valoarea euristicii
+        self._hval = 0
+        # search depth of current instance
+        self._depth = 0
+        # parent node in search path
+        self._parent = None
+        self.adj_matrix = []
+        for i in range(3):
+            self.adj_matrix.append(_goal_state[i][:])
+
+    def __eq__(self, other):
+        if self.__class__ != other.__class__:
+            return False
+        else:
+            return self.adj_matrix == other.adj_matrix
+
+    def __str__(self):
+        res = ''
+        for row in range(3):
+            res += ' '.join(map(str, self.adj_matrix[row]))
+            res += '\r\n'
+        return res
+
+    def _clone(self):
+        p = EightPuzzle()
+        for i in range(3):
+            p.adj_matrix[i] = self.adj_matrix[i][:]
+        return p
+
+    def _get_legal_moves(self):
+        """Returns list of tuples with which the free space may
+        be swapped"""
+        # get row and column of the empty piece
+        row, col = self.find(0)
+        free = []
+        
+        # find which pieces can move there
+        if row > 0:
+            free.append((row - 1, col))
+        if col > 0:
+            free.append((row, col - 1))
+        if row < 2:
+            free.append((row + 1, col))
+        if col < 2:
+            free.append((row, col + 1))
+
+        return free
+
+    def _generate_moves(self):
+        free = self._get_legal_moves()
+        zero = self.find(0)
+
+        def swap_and_clone(a, b):
+            p = self._clone()
+            p.swap(a,b)
+            p._depth = self._depth + 1
+            p._parent = self
+            return p
+
+
+
+    def _generate_solution_path(self, path):
+        if self._parent == None:
+            return path
+        else:
+            path.append(self)
+            return self._parent._generate_solution_path(path)
+
+    def solve(self, h):
+        """Performs A* search for goal state.
+        h(puzzle) - heuristic function, returns an integer
+        """
+        def is_solved(puzzle):
+            return puzzle.adj_matrix == _goal_state
+
+        openl = [self]
+        closedl = []
+        move_count = 0
+        while len(openl) > 0:
+            x = openl.pop(0)
+            move_count += 1
+            if (is_solved(x)):
+                if len(closedl) > 0:
+                    return x._generate_solution_path([]), move_count
+                else:
+                    return [x]
+
+            succ = x._generate_moves()
+            idx_open = idx_closed = -1
+            for move in succ:
+                # have we already seen this node?
+                idx_open = index(move, openl)
+                idx_closed = index(move, closedl)
+                hval = h(move)
+                fval = hval + move._depth
+
+                if idx_closed == -1 and idx_open == -1:
+                    move._hval = hval
+                    openl.append(move)
+                elif idx_open > -1:
+                    copy = openl[idx_open]
+                    if fval < copy._hval + copy._depth:
+                        # copy move's values over existing
+                        copy._hval = hval
+                        copy._parent = move._parent
+                        copy._depth = move._depth
+                elif idx_closed > -1:
+                    copy = closedl[idx_closed]
+                    if fval < copy._hval + copy._depth:
+                        move._hval = hval
+                        closedl.remove(copy)
+                        openl.append(move)
+
+            closedl.append(x)
+            
+            #se sorteaza in ordinrs g+h (structura de heap)
+            openl = sorted(openl, key=lambda p: p._hval + p._depth)
+
+        # if finished state not found, return failure
+        return [], 0
+
+    def shuffle(self, step_count):
+        for i in range(step_count):
+            row, col = self.find(0)
+            free = self._get_legal_moves()
+            target = random.choice(free)
+            self.swap((row, col), target)            
+            row, col = target
+
+    def find(self, value):
+        """returns the row, col coordinates of the specified value
+           in the graph"""
+        if value < 0 or value > 8:
+            raise Exception("value out of range")
+
+        for row in range(3):
+            for col in range(3):
+                if self.adj_matrix[row][col] == value:
+                    return row, col
+    
+    def peek(self, row, col):
+        """returns the value at the specified row and column"""
+        return self.adj_matrix[row][col]
+
+    def poke(self, row, col, value):
+        """sets the value at the specified row and column"""
+        self.adj_matrix[row][col] = value
+
+    def swap(self, pos_a, pos_b):
+        """swaps values at the specified coordinates"""
+        temp = self.peek(*pos_a)
+        self.poke(pos_a[0], pos_a[1], self.peek(*pos_b))
+        self.poke(pos_b[0], pos_b[1], temp)
+
+
+############################# euristica numarare a pozitiilor gresite ###################################
+
+def heur_numarar(puzzle, item_total_calc, total_calc):
+    t = 0
+    for row in range(3):
+        for col in range(3):
+            
+            val = puzzle.peek(row, col) - 1
+            rand, col =EightPuzzle.find(val)
+            va2 =EightPuzzle.peek(rand, col)
+            
+            if(val !=va2):
+                t+=1
+            
+    return total_calc(t)
+
+
+#############################  euristica.all ###################################
+
+def heur__menhatten(puzzle, item_total_calc, total_calc):
+    """
+    Șablon euristic care furnizează poziția curentă și țintă pentru fiecare număr și
+    funcție totală.
+    puzzle - puzzle
+    item_total_calc - preia 4 parametri: rândul curent, rândul țintă, col curent, col țintă.
+    returntotal_calc - preia parametrul 1, suma item_total_calc peste toate intrările și returnează int.
+    """
+    t = 0
+    for row in range(3):
+        for col in range(3):
+            val = puzzle.peek(row, col) - 1
+            target_col = val % 3
+            target_row = val / 3
+
+            if target_row < 0: 
+                target_row = 2
+                
+            #calculez distanta manhettan
+            item_total_calc= abs(target_row - row) + abs(target_col - col)
+            
+            t += item_total_calc
+
+    return total_calc(t)
+############################# euristica EUCLID #############################
+def heur__euclid(puzzle, item_total_calc, total_calc):
+    """
+    Șablon euristic care furnizează poziția curentă și țintă pentru fiecare număr și
+    funcție totală.
+    puzzle - puzzle
+    item_total_calc - preia 4 parametri: rândul curent, rândul țintă, col curent, col țintă.
+    returntotal_calc - preia parametrul 1, suma item_total_calc peste toate intrările și returnează int.
+    """
+    t = 0
+    for row in range(3):
+        for col in range(3):
+            val = puzzle.peek(row, col) - 1
+            target_col = val % 3
+            target_row = val / 3
+
+            if target_row < 0: 
+                target_row = 2
+                
+            #calculez distanta manhettan
+            item_total_calc= (target_row - row)**2 + (target_col - col)**2
+            
+            t += math.sqrt(item_total_calc)
+
+    return total_calc(t)
+############################# Euristica  #################
+   
+           
+        
+# Module Classes
+class EightPuzzleState2:
+    """
+    The Eight Puzzle is described in the course textbook on
+    page 64.
+
+    This class defines the mechanics of the puzzle itself.  The
+    task of recasting this puzzle as a search problem is left to
+    the EightPuzzleSearchProblem class.
+    """
+
+    def __init__( self, numbers ):
+        """
+          Constructs a new eight puzzle from an ordering of numbers.
+
+        numbers: a list of integers from 0 to 8 representing an
+          instance of the eight puzzle.  0 represents the blank
+          space.  Thus, the list
+
+            [1, 0, 2, 3, 4, 5, 6, 7, 8]
+
+          represents the eight puzzle:
+            -------------
+            | 1 |   | 2 |
+            -------------
+            | 3 | 4 | 5 |
+            -------------
+            | 6 | 7 | 8 |
+            ------------
+
+        The configuration of the puzzle is stored in a 2-dimensional
+        list (a list of lists) 'cells'.
+        """
+        self.cells = []
+        numbers = numbers[:] # Make a copy so as not to cause side-effects.
+        numbers.reverse()
+        for row in range( 3 ):
+            self.cells.append( [] )
+            for col in range( 3 ):
+                self.cells[row].append( numbers.pop() )
+                if self.cells[row][col] == 0:
+                    self.blankLocation = row, col
+
+    def isGoal( self ):
+        """
+          Checks to see if the puzzle is in its goal state.
+
+            -------------
+            |   | 1 | 2 |
+            -------------
+            | 3 | 4 | 5 |
+            -------------
+            | 6 | 7 | 8 |
+            -------------
+
+        >>> EightPuzzleState([0, 1, 2, 3, 4, 5, 6, 7, 8]).isGoal()
+        True
+
+        >>> EightPuzzleState([1, 0, 2, 3, 4, 5, 6, 7, 8]).isGoal()
+        False
+        """
+        current = 0
+        for row in range( 3 ):
+            for col in range( 3 ):
+                if current != self.cells[row][col]:
+                    return False
+                current += 1
+        return True
+
+    def legalMoves( self ):
+        """
+          Returns a list of legal moves from the current state.
+
+        Moves consist of moving the blank space up, down, left or right.
+        These are encoded as 'up', 'down', 'left' and 'right' respectively.
+
+        >>> EightPuzzleState([0, 1, 2, 3, 4, 5, 6, 7, 8]).legalMoves()
+        ['down', 'right']
+        """
+        moves = []
+        row, col = self.blankLocation
+        if(col == 0 and row==0 ):
+            moves.append('center')
+        if(col == 2 and row==2):
+            moves.append('center')  
+        if(col == 0 and row==2):
+            moves.append('center')  
+        if(col == 2 and row==0):
+            moves.append('center')      
+        if(row != 0):
+            moves.append('up')
+        if(row != 2):
+            moves.append('down')
+        if(col != 0):
+            moves.append('left')
+        if(col != 2):
+            moves.append('right')
+        return moves
+        
+    
+
+    def result(self, move):
+        """
+          Returns a new eightPuzzle with the current state and blankLocation
+        updated based on the provided move.
+
+        The move should be a string drawn from a list returned by legalMoves.
+        Illegal moves will raise an exception, which may be an array bounds
+        exception.
+
+        NOTE: This function *does not* change the current object.  Instead,
+        it returns a new object.
+        """
+        row, col = self.blankLocation
+        if(move == 'up'):
+            newrow = row - 1
+            newcol = col
+        elif(move == 'down'):
+            newrow = row + 1
+            newcol = col
+        elif(move == 'left'):
+            newrow = row
+            newcol = col - 1
+        elif(move == 'right'):
+            newrow = row
+            newcol = col + 1
+        elif(move == 'center'):
+            newrow = 1
+            newcol =  1    
+        else:
+            raise "Illegal Move"
+
+        # Create a copy of the current eightPuzzle
+        newPuzzle = EightPuzzleState2([0, 0, 0, 0, 0, 0, 0, 0, 0])
+        newPuzzle.cells = [values[:] for values in self.cells]
+        # And update it to reflect the move
+        newPuzzle.cells[row][col] = self.cells[newrow][newcol]
+        newPuzzle.cells[newrow][newcol] = self.cells[row][col]
+        newPuzzle.blankLocation = newrow, newcol
+
+        return newPuzzle
+
+
+
+    # Utilities for comparison and display
+    def __eq__(self, other):
+        """
+            Overloads '==' such that two eightPuzzles with the same configuration
+          are equal.
+
+          >>> EightPuzzleState([0, 1, 2, 3, 4, 5, 6, 7, 8]) == \
+              EightPuzzleState([1, 0, 2, 3, 4, 5, 6, 7, 8]).result('left')
+          True
+        """
+        for row in range( 3 ):
+            if self.cells[row] != other.cells[row]:
+                return False
+        return True
+
+    def __hash__(self):
+        return hash(str(self.cells))
+
+    def __getAsciiString(self):
+        """
+          Returns a display string for the maze
+        """
+        lines = []
+        horizontalLine = ('-' * (13))
+        lines.append(horizontalLine)
+        for row in self.cells:
+            rowLine = '|'
+            for col in row:
+                if col == 0:
+                    col = ' '
+                rowLine = rowLine + ' ' + col.__str__() + ' |'
+            lines.append(rowLine)
+            lines.append(horizontalLine)
+        return '\n'.join(lines)
+
+    def __str__(self):
+        return self.__getAsciiString()
+
+
+
+
+
+class EightPuzzleState:
+    """
+    The Eight Puzzle is described in the course textbook on
+    page 64.
+
+    This class defines the mechanics of the puzzle itself.  The
+    task of recasting this puzzle as a search problem is left to
+    the EightPuzzleSearchProblem class.
+    """
+
+    def __init__( self, numbers ):
+        """
+          Constructs a new eight puzzle from an ordering of numbers.
+
+        numbers: a list of integers from 0 to 8 representing an
+          instance of the eight puzzle.  0 represents the blank
+          space.  Thus, the list
+
+            [1, 0, 2, 3, 4, 5, 6, 7, 8]
+
+          represents the eight puzzle:
+            -------------
+            | 1 |   | 2 |
+            -------------
+            | 3 | 4 | 5 |
+            -------------
+            | 6 | 7 | 8 |
+            ------------
+
+        The configuration of the puzzle is stored in a 2-dimensional
+        list (a list of lists) 'cells'.
+        """
+        self.cells = []
+        numbers = numbers[:] # Make a copy so as not to cause side-effects.
+        numbers.reverse()
+        for row in range( 3 ):
+            self.cells.append( [] )
+            for col in range( 3 ):
+                self.cells[row].append( numbers.pop() )
+                if self.cells[row][col] == 0:
+                    self.blankLocation = row, col
+
+    def isGoal( self ):
+        """
+          Checks to see if the puzzle is in its goal state.
+
+            -------------
+            |   | 1 | 2 |
+            -------------
+            | 3 | 4 | 5 |
+            -------------
+            | 6 | 7 | 8 |
+            -------------
+
+        >>> EightPuzzleState([0, 1, 2, 3, 4, 5, 6, 7, 8]).isGoal()
+        True
+
+        >>> EightPuzzleState([1, 0, 2, 3, 4, 5, 6, 7, 8]).isGoal()
+        False
+        """
+        current = 0
+        for row in range( 3 ):
+            for col in range( 3 ):
+                if current != self.cells[row][col]:
+                    return False
+                current += 1
+        return True
+
+    def legalMoves( self ):
+        """
+          Returns a list of legal moves from the current state.
+
+        Moves consist of moving the blank space up, down, left or right.
+        These are encoded as 'up', 'down', 'left' and 'right' respectively.
+
+        >>> EightPuzzleState([0, 1, 2, 3, 4, 5, 6, 7, 8]).legalMoves()
+        ['down', 'right']
+        """
+        moves = []
+        row, col = self.blankLocation
+       
+        if(row != 0):
+            moves.append('up')
+        if(row != 2):
+            moves.append('down')
+        if(col != 0):
+            moves.append('left')
+        if(col != 2):
+            moves.append('right')
+        return moves
+        
+    
+
+    def result(self, move):
+        """
+          Returns a new eightPuzzle with the current state and blankLocation
+        updated based on the provided move.
+
+        The move should be a string drawn from a list returned by legalMoves.
+        Illegal moves will raise an exception, which may be an array bounds
+        exception.
+
+        NOTE: This function *does not* change the current object.  Instead,
+        it returns a new object.
+        """
+        row, col = self.blankLocation
+        if(move == 'up'):
+            newrow = row - 1
+            newcol = col
+        elif(move == 'down'):
+            newrow = row + 1
+            newcol = col
+        elif(move == 'left'):
+            newrow = row
+            newcol = col - 1
+        elif(move == 'right'):
+            newrow = row
+            newcol = col + 1
+         
+        else:
+            raise "Illegal Move"
+
+        # Create a copy of the current eightPuzzle
+        newPuzzle = EightPuzzleState([0, 0, 0, 0, 0, 0, 0, 0, 0])
+        newPuzzle.cells = [values[:] for values in self.cells]
+        # And update it to reflect the move
+        newPuzzle.cells[row][col] = self.cells[newrow][newcol]
+        newPuzzle.cells[newrow][newcol] = self.cells[row][col]
+        newPuzzle.blankLocation = newrow, newcol
+
+        return newPuzzle
+
+    # Utilities for comparison and display
+    def __eq__(self, other):
+        """
+            Overloads '==' such that two eightPuzzles with the same configuration
+          are equal.
+
+          >>> EightPuzzleState([0, 1, 2, 3, 4, 5, 6, 7, 8]) == \
+              EightPuzzleState([1, 0, 2, 3, 4, 5, 6, 7, 8]).result('left')
+          True
+        """
+        for row in range( 3 ):
+            if self.cells[row] != other.cells[row]:
+                return False
+        return True
+
+    def __hash__(self):
+        return hash(str(self.cells))
+
+    def __getAsciiString(self):
+        """
+          Returns a display string for the maze
+        """
+        lines = []
+        horizontalLine = ('-' * (13))
+        lines.append(horizontalLine)
+        for row in self.cells:
+            rowLine = '|'
+            for col in row:
+                if col == 0:
+                    col = ' '
+                rowLine = rowLine + ' ' + col.__str__() + ' |'
+            lines.append(rowLine)
+            lines.append(horizontalLine)
+        return '\n'.join(lines)
+
+    def __str__(self):
+        return self.__getAsciiString()
+
+# TODO: Implement The methods in this class
+
+class EightPuzzleSearchProblem(search.SearchProblem):
+    """
+      Implementation of a SearchProblem for the  Eight Puzzle domain
+
+      Each state is represented by an instance of an eightPuzzle.
+    """
+    def __init__(self,puzzle):
+        "Creates a new EightPuzzleSearchProblem which stores search information."
+        self.puzzle = puzzle
+
+
+    def getStartState(self):
+        return self.puzzle
+
+    def isGoalState(self,state):
+        return state.isGoal()
+
+    def getSuccessors(self,state):
+        """
+          Returns list of (successor, action, stepCost) pairs where
+          each succesor is either left, right, up, or down
+          from the original state and the cost is 1.0 for each
+        """
+        succ = []
+        for a in state.legalMoves():
+            succ.append((state.result(a), a, 1))
+        return succ
+
+    def getCostOfActions(self, actions):
+        """
+         actions: A list of actions to take
+
+        This method returns the total cost of a particular sequence of actions.  The sequence must
+        be composed of legal moves
+        """
+        return len(actions)
+
+EIGHT_PUZZLE_DATA = [[1, 0, 2, 3, 4, 5, 6, 7, 8],
+                     [1, 7, 8, 2, 3, 4, 5, 6, 0],
+                     [4, 3, 2, 7, 0, 5, 1, 6, 8],
+                     [5, 1, 3, 4, 0, 2, 6, 7, 8],
+                     [1, 2, 5, 7, 6, 8, 0, 4, 3],
+                     [0, 3, 1, 6, 8, 2, 7, 5, 4]]
+
+def loadEightPuzzle(puzzleNumber):
+    """
+      puzzleNumber: The number of the eight puzzle to load.
+
+      Returns an eight puzzle object generated from one of the
+      provided puzzles in EIGHT_PUZZLE_DATA.
+
+      puzzleNumber can range from 0 to 5.
+
+      >>> print loadEightPuzzle(0)
+      -------------
+      | 1 |   | 2 |
+      -------------
+      | 3 | 4 | 5 |
+      -------------
+      | 6 | 7 | 8 |
+      -------------
+    """
+    return EightPuzzleState(EIGHT_PUZZLE_DATA[puzzleNumber])
+
+def createRandomEightPuzzle(moves=100):
+    """
+      moves: number of random moves to apply
+
+      Creates a random eight puzzle by applying
+      a series of 'moves' random moves to a solved
+      puzzle.
+    """
+    puzzle = EightPuzzleState([0,1,2,3,4,5,6,7,8]) 
+    for i in range(moves):
+    #     # Execute a random legal move
+         puzzle = puzzle.result(random.sample(puzzle.legalMoves(), 1)[0])
+    return puzzle
+
+def createRandomEightPuzzle2(moves=100):
+    """
+      moves: number of random moves to apply
+
+      Creates a random eight puzzle by applying
+      a series of 'moves' random moves to a solved
+      puzzle.
+    """
+    puzzle2 = EightPuzzleState2([0,1,2,3,4,5,6,7,8]) 
+    for i in range(moves):
+        # Execute a random legal move
+        puzzle2 = puzzle2.result(random.sample(puzzle2.legalMoves(), 1)[0])
+    return puzzle2
+
+
+
+def bfs_without_center():
+    puzzle = createRandomEightPuzzle(25)
+    print('A random puzzle:')
+    print(puzzle) 
+    problem = EightPuzzleSearchProblem(puzzle)
+    path = search.breadthFirstSearch(problem)
+    print('without center: BFS found a path of %d moves: %s' % (len(path), str(path)))
+    curr = puzzle
+    i = 1
+    for a in path:
+        curr = curr.result(a)
+        print('After %d move%s: %s' % (i, ("", "s")[i>1], a))
+        print(curr)
+
+   
+
+def bfs_with_center():  
+    puzzle2 = createRandomEightPuzzle2(25)
+    print('A random puzzle:')
+    print(puzzle2) 
+    problem = EightPuzzleSearchProblem(puzzle2)
+    path = search.breadthFirstSearch(problem)
+    print('with center: BFS found a path of %d moves: %s' % (len(path), str(path)))
+    curr = puzzle2
+    i = 1
+    for a in path:
+        curr = curr.result(a)
+        print('After %d move%s: %s' % (i, ("", "s")[i>1], a))
+        print(curr)
+    
+def euristici():
+    p = EightPuzzle()
+    p.shuffle(20)
+    q=p
+    d=p
+    print("A random puzzle")
+    f=str(p).split(",")
+    h=str(f).replace("\\r\\n", " ").split(" ")
+    iu=str(h[0]).replace("[", "").replace("'", "")
+    print(f"-------------\n| {iu} | {h[1]} | {h[2]} |\n------------\n| {h[3]} | {h[4]} | {h[5]} |\n------------\n| {h[6]} | {h[7]} | {h[8]} |\n------------\n")
+ 
+
+    path, count = p.solve(heur__menhatten)
+    path.reverse()
+    path, count = p.solve(heur__menhatten)
+    path.reverse()
+    print ("Solved with Menhettan distance exploring", count, "states")
+    pas=0
+    for i in path: 
+      
+        f=str(i).split(",")
+        h=str(f).replace("\\r\\n", " ").split(" ")
+        iu=str(h[0]).replace("[", "").replace("'", "")
+        print(f"-------------\n| {iu} | {h[1]} | {h[2]} |\n------------\n| {h[3]} | {h[4]} | {h[5]} |\n------------\n| {h[6]} | {h[7]} | {h[8]} |\n------------ ")
+        print(f'After {pas} move:')
+        pas+=1
+        
+
+    
+    path=[]
+    count=0
+    path, count = q.solve(heur__euclid)
+    print ("Solved with Euclidian distance exploring", count, "states")
+    pas=0
+    for i in path: 
+      
+        f=str(i).split(",")
+        h=str(f).replace("\\r\\n", " ").split(" ")
+        iu=str(h[0]).replace("[", "").replace("'", "")
+        print(f"-------------\n| {iu} | {h[1]} | {h[2]} |\n------------\n| {h[3]} | {h[4]} | {h[5]} |\n------------\n| {h[6]} | {h[7]} | {h[8]} |\n------------ ")
+        print(f'After {pas} move:')
+        pas+=1
+        
+
+    path=[]
+    count=0
+    path, count = d.solve(heur_numarar)
+    print ("Numarare de pozitii gresite", count, "states")
+    pas=0
+    for i in path:      
+        f=str(i).split(",")
+        h=str(f).replace("\\r\\n", " ").split(" ")
+        iu=str(h[0]).replace("[", "").replace("'", "")
+        print(f"-------------\n| {iu} | {h[1]} | {h[2]} |\n------------\n| {h[3]} | {h[4]} | {h[5]} |\n------------\n| {h[6]} | {h[7]} | {h[8]} |\n------------ ")
+        print(f'After {pas} move:')
+        pas+=1
+        
+   
+    
+    
+def eursitci():
+   
+    p = EightPuzzle()
+    p.shuffle(20)
+    q=p
+    d=p
+    print("A random puzzle")
+    print(p)
+    
+    ############################### Menhattan ###########################
+    path, count = p.solve( heur__menhatten(p, 0, 0))
+    path.reverse()
+    print ("Solved with Menhettan distance exploring", count, "states")
+    pas=0
+    for i in path: 
+        print(p)    
+        print(f'After {pas} move:')
+        pas+=1
+        
+  
+    ############################### Euclid ###########################    
+    path=[]
+    count=0
+    path, count = q.solve(heur__euclid(p, 0,0))
+    print ("Solved with Euclidian distance exploring", count, "states")
+    pas=0
+    for i in path: 
+        print(p)    
+        print(f'After {pas} move:')
+        pas+=1
+  
+    
+    ########################## Numarare pasi gresiti ####################
+    path=[]
+    count=0
+    path, count = d.solve(heur_numarar(p, 0, 0))
+    print ("Numarare de pozitii gresite", count, "states")
+    pas=0
+    for i in path: 
+            print(p)    
+            print(f'After {pas} move:')
+            pas+=1
+            
+            
+            
+               
+if __name__ == '__main__':
+
+  # bfs_without_center()
+  # bfs_with_center()
+  euristici()
+
+
+
+
+
+

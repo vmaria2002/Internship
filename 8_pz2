@@ -1,0 +1,300 @@
+
+
+
+from util import manhattanDistance
+from game import Directions
+import random, util
+
+from game import Agent
+
+class ReflexAgent(Agent):
+    """
+    A reflex agent chooses an action at each choice point by examining
+    its alternatives via a state evaluation function.
+
+    The code below is provided as a guide.  You are welcome to change
+    it in any way you see fit, so long as you don't touch our method
+    headers.
+    """
+    def getAction(self, gameState):
+        """
+        You do not need to change this method, but you're welcome to.
+
+        getAction chooses among the best options according to the evaluation function.
+
+        Just like in the previous project, getAction takes a GameState and returns
+        some Directions.X for some X in the set {NORTH, SOUTH, WEST, EAST, STOP}
+        """
+        # Collect legal moves and child states
+        legalMoves = gameState.getLegalActions()
+
+        # Choose one of the best actions
+        scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
+        bestScore = max(scores)
+        bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
+        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+
+        "Add more of your code here if you want to"
+
+        return legalMoves[chosenIndex]
+
+    def evaluationFunction(self, currentGameState, action):
+        #mrotodele de staresunt implementate in pacman.py
+        childGameState = currentGameState.getPacmanState(action)
+        newPos = childGameState.getPacmanPosition()
+        newFood = childGameState.getFood()
+        newGhostStates = childGameState.getGhostStates()
+        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+
+        "*** YOUR CODE HERE ***"
+        
+        foodList = newFood.asList()
+        foodDistance = []
+        ghostDistance = []
+
+        #cautam cea mai apropiata bucata de mancare, din toate existenta
+        #a follosit distanta Menhetten pentru calcularea celei mai apropiate bucata de mancare
+        for food in foodList:
+            foodDistance.append(util.manhattanDistance(newPos, food))
+
+        if len(foodDistance) == 0:
+            return 500
+        closestFood = min(foodDistance)
+
+        #distanta pana la cea mai apropiata fantoma
+        for ghost in childGameState.getGhostPositions():
+            ghostDistance.append(util.manhattanDistance(newPos, ghost))
+
+        if newPos in childGameState.getGhostPositions():
+            return -100
+        closestGhost = min(ghostDistance)
+        
+        #se identifica starea de stop. Se calcueleaza cat scorul in functie de  timp si pun
+        rez = closestGhost / closestFood
+        timer = 0
+        if action == 'Stop':
+            timer -= 50
+
+        return childGameState.getScore() + rez + timer
+
+def scoreEvaluationFunction(currentGameState):
+    """
+    This default evaluation function just returns the score of the state.
+    The score is the same one displayed in the Pacman GUI.
+
+    This evaluation function is meant for use with adversarial search agents
+    (not reflex agents).
+    """
+    return currentGameState.getScore()
+
+class MultiAgentSearchAgent(Agent):
+    """
+    This class provides some common elements to all of your
+    multi-agent searchers.  Any methods defined here will be available
+    to the MinimaxPacmanAgent, AlphaBetaPacmanAgent & ExpectimaxPacmanAgent.
+
+    You *do not* need to make any changes here, but you can if you want to
+    add functionality to all your adversarial search agents.  Please do not
+    remove anything, however.
+
+    Note: this is an abstract class: one that should not be instantiated.  It's
+    only partially specified, and designed to be extended.  Agent (game.py)
+    is another abstract class.
+    """
+
+    def __init__(self, evalFn = 'scoreEvaluationFunction', depth = '2'):
+        self.index = 0 # Pacman is always agent index 0
+        self.evaluationFunction = util.lookup(evalFn, globals())
+        self.depth = int(depth)
+
+class MinimaxAgent(MultiAgentSearchAgent):
+    """
+    Your minimax agent (question 2)
+    """
+
+    def getAction(self, gameState):
+
+       
+        def miniMax(gameState, depth, agentIndex):
+
+            #se ajunge in argore la starea de la are se doreste sa parcurga  agentul arborele 
+            #ne ajuta sa punem agentul pemax
+            if agentIndex >= gameState.getNumAgents():
+                depth += 1  #se merge la adancimea doita
+                agentIndex = 0
+
+            #s-a ajuns in radacina arborelui, pentru ca jocul incepe cu Max, vom impune sa se 
+            # faca Max pe radacina, aplicandu-se functia de max pe 
+            if agentIndex == 0:
+                result = maxFunction(gameState, depth, agentIndex)
+                return result
+            #este urmatorul pas dupa Max, se apeleaza functia minim
+            if agentIndex !=0:
+                result = minFunction(gameState, depth, agentIndex)
+                return result
+
+            #conditie de terminare a cautarii
+            if depth == self.depth or gameState.isWin() or gameState.isLose():
+                return self.evaluationFunction(gameState)
+
+        def minFunction(gameState, depth, agentIndex):
+            minAction = None
+            #se initializeaza cu cea mai mare valoare posibila
+            minValue = float('inf')
+            #se obtin toate actiunile pe care le-ar putea face din pozitia in care se afla
+            actionList = gameState.getLegalActions(agentIndex)
+
+            for action in actionList:
+                nextState = gameState.getNextState(agentIndex, action)
+                #se parcurge arorele pentru a alege dace este in min sau max
+                eval = miniMax(nextState, depth, agentIndex + 1)
+                #vom obtine o lista cu toate valorile pe care le poate alege in min-max
+                if type(eval) is not list:
+                    aux = eval
+                else:
+                    #prima este asezata in ordinea dorita, se mentine relatia de ordine orita
+                    aux = eval[1]
+                # se updateaza valoarea minima    
+                if aux < minValue:
+                    minValue = aux
+                    minAction = action
+            #daca nu mai avem actiuni pe care sa le expandam, putem iesi din functie        
+            if len(actionList) == 0:
+                return self.evaluationFunction(gameState)
+        
+            return [minAction, minValue]
+
+        def maxFunction(gameState, depth, agentIndex):
+
+            maxAction = None
+            maxValue = float('-inf')
+            actionList = gameState.getLegalActions(agentIndex)
+            if len(actionList) == 0:
+                return self.evaluationFunction(gameState)
+
+            for action in actionList:
+                nextState = gameState.getNextState(agentIndex, action)
+                eval = miniMax(nextState, depth, agentIndex + 1)
+                if type(eval) is not list:
+                    aux = eval
+                else:
+                    aux = eval[1]
+                if aux > maxValue:
+                    maxValue = aux
+                    maxAction = action
+            return [maxAction, maxValue]
+
+        actions = miniMax(gameState, 0, 0)
+        return actions[0]
+
+
+class AlphaBetaAgent(MultiAgentSearchAgent):
+    """
+    Your minimax agent with alpha-beta pruning (question 3)
+    """
+
+    def getAction(self, gameState):
+        """
+        Returns the minimax action using self.depth and self.evaluationFunction
+        """
+        "*** YOUR CODE HERE ***"
+
+        def AlphaBeta(gameState, depth, agentIndex, alpha, beta):
+
+            #initializare
+            if agentIndex >= gameState.getNumAgents():
+                depth += 1
+                agentIndex = 0
+           #pt max
+            elif agentIndex == 0:
+                result = maxFunction(gameState, depth, agentIndex, alpha, beta)
+                return result
+            else:
+                #pentru min
+                result = minFunction(gameState, depth, agentIndex, alpha, beta)
+                return result
+
+            #sfarsit cautare
+            if depth == self.depth or gameState.isWin() or gameState.isLose():
+                return self.evaluationFunction(gameState)
+
+        def minFunction(gameState, depth, agentIndex, alpha, beta):
+
+            minAction = None
+            minValue = float('inf')
+            actionList = gameState.getLegalActions(agentIndex)
+            if len(actionList) == 0:
+                return self.evaluationFunction(gameState)
+
+            for action in actionList:
+                nextState = gameState.getNextState(agentIndex, action)
+                eval = AlphaBeta(nextState, depth, agentIndex + 1, alpha, beta)
+                if type(eval) is not list:
+                    aux = eval
+                else:
+                    aux = eval[1]
+                if aux < minValue:
+                    minValue = aux
+                    minAction = action
+                #gasim valoarea minima    
+                if aux < alpha:
+                    return [minAction, minValue]
+                beta = min(beta, aux)
+            return [minAction, minValue]
+
+        def maxFunction(gameState, depth, agentIndex, alpha, beta):
+
+            maxAction = None
+            maxValue = float('-inf')
+            actionList = gameState.getLegalActions(agentIndex)
+            if len(actionList) == 0:
+                return self.evaluationFunction(gameState)
+
+            for action in actionList:
+                nextState = gameState.getNextState(agentIndex, action)
+                eval = AlphaBeta(nextState, depth, agentIndex + 1, alpha, beta)
+                if type(eval) is not list:
+                    aux = eval
+                else:
+                    aux = eval[1]
+                if aux > maxValue:
+                    maxValue = aux
+                    maxAction = action
+                    
+                #se face pruning    
+                if aux > beta:
+                    return [maxAction, maxValue]
+                #update alpha
+                alpha = max(alpha, aux)
+            return [maxAction, maxValue]
+
+        actions = AlphaBeta(gameState, 0, 0, float('-inf'), float('inf'))
+        return actions[0]
+
+class ExpectimaxAgent(MultiAgentSearchAgent):
+    """
+      Your expectimax agent (question 4)
+    """
+
+    def getAction(self, gameState):
+        """
+        Returns the expectimax action using self.depth and self.evaluationFunction
+
+        All ghosts should be modeled as choosing uniformly at random from their
+        legal moves.
+        """
+        "*** YOUR CODE HERE ***"
+        util.raiseNotDefined()
+
+def betterEvaluationFunction(currentGameState):
+    """
+    Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
+    evaluation function (question 5).
+
+    DESCRIPTION: <write something here so we know what you did>
+    """
+    "*** YOUR CODE HERE ***"
+    util.raiseNotDefined()    
+
+# Abbreviation
+better = betterEvaluationFunction

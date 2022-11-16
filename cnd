@@ -1,40 +1,48 @@
-python pacman.py -l bigMaze -z .5 -p SearchAgent -a fn=astar,heuristic=manhattanHeuristic
-
-python pacman.py -l mediumMaze -p SearchAgent -a fn=bfs
- python pacman . py -l mediumMaze -p SearchAgent -a fn = bfs
- 
- python pacman.py -l tinyCorners -p SearchAgent -a fn=bfs,prob=CornersProblem
- 
- python pacman.py -p MinimaxAgent -l minimaxClassic -a depth=4
- 
- 
- Pacman:
- python pacman.py -l tinyCorners -p SearchAgent -a fn=bfs,prob=CornersProblem
- python pacman.py -l mediumCorners -p SearchAgent -a fn=aStarSearch,prob=CornersProblem,heuristic=cornersHeuristic
-python pacman.py -l testSearch -p SearchAgent -a fn=astar,prob=FoodSearchProblem,heuristic=foodHeuristic
-python pacman.py -l bigMaze -z .5 -p SearchAgent -a fn=astar,heuristic=manhattanHeuristic
-python pacman.py -l testMaze -p GoWestAgent
-
-
-python pacman.py -l mediumMaze -p SearchAgent -a fn=bfs
-python pacman.py -l tinyMaze -p SearchAgent -a fn=tinyMazeSearch --frameTime=1
-python pacman.py -l smallMaze -p SearchAgent
-python pacman.py -l mediumMaze -p SearchAgent -a fn=bfs
-python pacman.py -l mediumMaze -p SearchAgent -a fn=ucs
-python pacman.py -l mediumDottedMaze -p StayEastSearchAgent
-python pacman.py -l mediumScaryMaze -p StayWestSearchAgent
-python pacman.py -l tinyMaze -p SearchAgent -a fn=rs
-
-python pacman.py -l testSearch -p AStarFoodSearchAgent
-python pacman.py -l testSearch -p SearchAgent -a fn=astar,prob=FoodSearchProblem,heuristic=foodHeuristic
-	
-
-Multagent 
-python pacman.py -p AlphaBetaAgent -l openClassic -a depth=2
-python pacman.py -p MinimaxAgent -l minimaxClassic -a depth=4
-
-
-
-puzzle:
-
-python eightpuzzle.py
+a s s i g n ( max seconds , 3 0 ) .
+2
+3 f o rm ul a s ( a s sump ti on s ) .
+4
+5 %t h e r e i s a l ad y i n room 1 , 2 or 3
+6 l 1 | l 2 | l 3 .
+7 %no l ad y i n more than 1 room ; t h e p r i n c e s s i s un ique
+8 l 1 −> −l 2 . l 1 −> −l 3 . l 2 −> −l 1 .
+9 l 2 −> −l 3 . l 3 −> −l 1 . l 3 −> −l 2 .
+10
+11 %t h e r e i s 1 t i g e r i n one o f the rooms 1 , 2 or 3
+12 t 1 | t 2 | t 3 .
+13
+14 %no t i g e r i n more than 1 room ; t h e t i g e r i s un ique as w e l l
+15 t 1 −> −t 2 . t 1 −> −t 3 . t 2 −> −t 1 .
+16 t 2 −> −t 3 . t 3 −> −t 1 . t 3 −> −t 2 .
+17
+18 %we have one empty room
+19 e1 | e2 | e3 .
+20 %but no more than one
+21 e1 −> −e2 . e1 −> −e3 . e2 −> −e1 .
+22 e2 −> −e3 . e3 −> −e1 . e3 −> −e2 .
+23
+24 %no t i g e r i n the room where the l ad y s t a y s
+25 l 1 −> −t 1 . l 2 −> −t 2 . l 3 −> −t 3 .
+26
+27 %the room where the l ad y s t a y s i s not empty
+28 l 1 −> −e1 . l 2 −> −e2 . l 3 −> −e3 .
+29
+30 %the room where a t i g e r s t a y s i s not empty
+31 t 1 −> −e1 . t 2 −> −e2 . t 3 −> −e3 .
+32
+33 %the cl u e on the lady ’ s room i s t r u e ; on t h e t i g e r ’ s room i s f a l s e
+34 %the cl u e on the empty room i s e i t h e r f a l s e or t r u e
+35
+36 %cl u e on door #1: room #3 i s empty
+37 l 1 −> e3 . t 1 −> −e3 .
+38
+39 %cl u e on door #2: the t i g e r i s i n room #1
+40 l 2 −> t 1 . t 2 −> −t 1 .
+41
+42 %cl u e on door #3: t h i s room i s empty
+43 l 3 −> e3 . t 3 −> −e3 .
+44 e n d o f l i s t .
+45
+46 f o rm ul a s ( g o al s ) .
+47 %l 1 .
+48 e n d o f l i s t .
